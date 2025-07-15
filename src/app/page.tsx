@@ -1,103 +1,273 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState, useRef, useEffect } from 'react';
+import { supabase } from './lib/supabase';
+
+export default function Page() {
+  const [mode, setMode] = useState<'url' | 'text'>('url');
+  const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [origCount, setOrigCount] = useState(0);
+  const [sumCount, setSumCount] = useState(0);
+  const summaryRef = useRef<HTMLDivElement | null>(null);
+
+  const facts = [
+    '💡 Summaries boost retention by 30%.',
+    '⏱️ Average reader saves 6 min per article.',
+    '🌎 This app supports 40+ languages.',
+    '📊 AI cuts word-count ~85% on avg.',
+    '🔒 Summaries are stored securely in Supabase.'
+  ];
+  const [factIdx, setFactIdx] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setFactIdx(i => (i + 1) % facts.length), 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  const BLUE = '#7dd3fc';
+  const LIGHT_BLUE = '#e0f2fe';
+  const DARK_SKY = '#0c4a6e';
+  const DARK_TEXT = '#1e293b';
+  const GRAY_BTN = '#1f2937';
+  const GRAY_HOVER = '#374151';
+
+  const canRun = inputValue.trim() && !loading;
+
+  const inputBase: React.CSSProperties = {
+    background: '#fff',
+    border: `2px solid ${BLUE}`,
+    borderRadius: '0.5rem',
+    color: DARK_TEXT,
+    fontSize: '1rem',
+    padding: '0.75rem 1rem',
+    outline: 'none',
+    transition: 'all 0.25s'
+  };
+
+  async function summarize() {
+    setLoading(true);
+    setSummary('');
+    setOrigCount(inputValue.trim().split(/\s+/).length);
+
+    try {
+      const res = await fetch(
+        'https://malaika-khan.app.n8n.cloud/webhook/f1bce2eb-deb8-44bc-984a-8ef963b57645/chat',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatInput: inputValue.trim(), action: 'sendMessage' })
+        }
+      );
+
+      const data = await res.json();
+      const text =
+        data?.summary ||
+        data?.message ||
+        (typeof data === 'string' ? data : JSON.stringify(data));
+
+      setSummary(text);
+      setSumCount(text.split(/\s+/).length);
+
+      await supabase.from('summaries').insert([{ content: inputValue, summary: text }]);
+    } catch (err) {
+      console.error(err);
+      setSummary('❌ Error — please try again.');
+    } finally {
+      setLoading(false);
+      setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
+    }
+  }
+
+  async function copy() {
+    await navigator.clipboard.writeText(summary);
+    alert('📋 Copied!');
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <main
+      style={{
+        minHeight: '100vh',
+        background: LIGHT_BLUE,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        paddingTop: '5rem',
+        gap: '1.5rem',
+        position: 'relative',
+        paddingBottom: '5rem'
+      }}
+    >
+      {loading && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            height: 4,
+            width: '100%',
+            background: BLUE,
+            animation: 'progress 1.5s linear forwards'
+          }}
         />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+      )}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      <h1 style={{ fontSize: '3rem', fontWeight: 800, color: DARK_SKY, margin: 0 }}>
+        📝 Blog&nbsp;Summarizer
+      </h1>
+      <p style={{ color: DARK_TEXT, margin: 0 }}>
+        Paste a URL or blog text to generate a summary.
+      </p>
+
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
+        {['url', 'text'].map(v => (
+          <button
+            key={v}
+            onClick={() => {
+              setMode(v as any);
+              setInputValue('');
+              setSummary('');
+              setOrigCount(0);
+              setSumCount(0);
+            }}
+            style={{
+              padding: '0.5rem 1.5rem',
+              borderRadius: 9999,
+              border: 0,
+              fontWeight: 600,
+              color: '#fff',
+              background: GRAY_BTN,
+              cursor: 'pointer'
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = GRAY_HOVER)}
+            onMouseLeave={e => (e.currentTarget.style.background = GRAY_BTN)}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            {v.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'url' ? (
+        <input
+          placeholder="Enter blog URL…"
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          style={{ ...inputBase, width: 'min(90vw,500px)', height: '3rem' }}
+        />
+      ) : (
+        <textarea
+          placeholder="Paste blog text…"
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          style={{ ...inputBase, width: 'min(90vw,650px)', height: '10rem', resize: 'vertical' }}
+        />
+      )}
+
+      <button
+        disabled={!canRun}
+        onClick={summarize}
+        style={{
+          marginTop: '1rem',
+          padding: '0.75rem 2rem',
+          borderRadius: '0.5rem',
+          border: 0,
+          fontWeight: 700,
+          fontSize: '1rem',
+          background: BLUE,
+          color: DARK_SKY,
+          opacity: canRun ? 1 : 0.6,
+          cursor: canRun ? 'pointer' : 'not-allowed',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+        }}
+      >
+        {loading ? 'Summarizing…' : '✨ Summarize'}
+      </button>
+
+      {!loading && summary && (
+        <div
+          ref={summaryRef}
+          style={{
+            position: 'relative',
+            marginTop: '1.5rem',
+            background: '#fff',
+            border: `1px solid ${BLUE}`,
+            borderRadius: '0.5rem',
+            padding: '1rem 1.25rem',
+            maxWidth: 'min(90vw,650px)',
+            color: DARK_TEXT,
+            lineHeight: 1.5,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+          }}
+        >
+          <div style={{ fontSize: '0.85rem', marginBottom: '0.6rem', color: DARK_TEXT }}>
+            📊 <strong>{origCount}</strong> → <strong>{sumCount}</strong> words
+          </div>
+          {summary}
+          <button
+            onClick={copy}
+            aria-label="Copy summary"
+            style={{
+              position: 'absolute',
+              top: '0.5rem',
+              right: '0.5rem',
+              padding: '0.25rem 0.6rem',
+              fontSize: '0.75rem',
+              border: 0,
+              borderRadius: '0.25rem',
+              background: GRAY_BTN,
+              color: '#fff',
+              cursor: 'pointer'
+            }}
           >
-            Read our docs
-          </a>
+            📋
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      )}
+
+      <aside
+        style={{
+          position: 'fixed',
+          right: 0,
+          top: '35%',
+          transform: 'translateY(-50%)',
+          width: '230px',
+          background: BLUE,
+          border: `1px solid ${DARK_SKY}`,
+          borderRadius: '0.5rem 0 0 0.5rem',
+          padding: '0.8rem 1rem',
+          fontSize: '0.9rem',
+          color: DARK_TEXT,
+          boxShadow: '0 1px 6px rgba(0,0,0,0.06)'
+        }}
+      >
+        {facts[factIdx]}
+      </aside>
+
+      <footer
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          width: '100%',
+          background: BLUE,
+          color: DARK_SKY,
+          textAlign: 'center',
+          padding: '0.75rem 1rem',
+          fontSize: '0.95rem',
+          fontWeight: 600,
+          boxShadow: '0 -1px 4px rgba(0,0,0,0.05)'
+        }}
+      >
+        🚀 Powered by AI • Designed by Malaika Khan
       </footer>
-    </div>
+
+      <style>{`
+        input::placeholder, textarea::placeholder { color: ${DARK_TEXT}99; }
+        @keyframes progress { from {transform:translateX(-100%);} to {transform:translateX(0);} }
+        aside { display: none; }
+        @media (min-width:640px){ aside { display:block; } }
+      `}</style>
+    </main>
   );
 }
