@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect, CSSProperties } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 
 export default function Page() {
-  /* ───────────────────── State ───────────────────── */
   const [mode, setMode] = useState<'url' | 'text'>('url');
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -13,25 +12,20 @@ export default function Page() {
   const [sumCount, setSumCount] = useState(0);
   const summaryRef = useRef<HTMLDivElement | null>(null);
 
-  /* ───────────── Rotating facts (sidebar) ─────────── */
   const facts = [
     '💡 Summaries boost retention by 30%.',
-    '⏱️ Average reader saves 6 min per article.',
+    '⏱️ Average reader saves 6 min per article.',
     '🌎 This app supports 40+ languages.',
-    '📊 AI cuts word‑count ~85% on avg.',
-    '🔒 Summaries are stored securely in Supabase.',
+    '📊 AI cuts word-count ~85% on avg.',
+    '🔒 Summaries are stored securely in Supabase.'
   ];
   const [factIdx, setFactIdx] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(
-      () => setFactIdx((i) => (i + 1) % facts.length),
-      5_000,
-    );
+    const id = setInterval(() => setFactIdx(i => (i + 1) % facts.length), 5000);
     return () => clearInterval(id);
-  }, [facts.length]); // ✅ include dependency
+  }, [facts.length]);
 
-  /* ──────────────────── Constants ─────────────────── */
   const BLUE = '#7dd3fc';
   const LIGHT_BLUE = '#e0f2fe';
   const DARK_SKY = '#0c4a6e';
@@ -41,7 +35,7 @@ export default function Page() {
 
   const canRun = inputValue.trim() && !loading;
 
-  const inputBase: CSSProperties = {
+  const inputBase: React.CSSProperties = {
     background: '#fff',
     border: `2px solid ${BLUE}`,
     borderRadius: '0.5rem',
@@ -49,10 +43,9 @@ export default function Page() {
     fontSize: '1rem',
     padding: '0.75rem 1rem',
     outline: 'none',
-    transition: 'all 0.25s',
+    transition: 'all 0.25s'
   };
 
-  /* ─────────────────── Handlers ───────────────────── */
   async function summarize() {
     setLoading(true);
     setSummary('');
@@ -64,34 +57,26 @@ export default function Page() {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chatInput: inputValue.trim(),
-            action: 'sendMessage',
-          }),
-        },
+          body: JSON.stringify({ chatInput: inputValue.trim(), action: 'sendMessage' })
+        }
       );
 
       const data = await res.json();
       const text =
-        data?.summary ??
-        data?.message ??
+        data?.summary ||
+        data?.message ||
         (typeof data === 'string' ? data : JSON.stringify(data));
 
       setSummary(text);
       setSumCount(text.split(/\s+/).length);
 
-      await supabase
-        .from('summaries')
-        .insert([{ content: inputValue, summary: text }]);
+      await supabase.from('summaries').insert([{ content: inputValue, summary: text }]);
     } catch (err) {
       console.error(err);
       setSummary('❌ Error — please try again.');
     } finally {
       setLoading(false);
-      setTimeout(
-        () => summaryRef.current?.scrollIntoView({ behavior: 'smooth' }),
-        80,
-      );
+      setTimeout(() => summaryRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
     }
   }
 
@@ -100,7 +85,6 @@ export default function Page() {
     alert('📋 Copied!');
   }
 
-  /* ───────────────────── JSX ──────────────────────── */
   return (
     <main
       style={{
@@ -112,10 +96,9 @@ export default function Page() {
         paddingTop: '5rem',
         gap: '1.5rem',
         position: 'relative',
-        paddingBottom: '5rem',
+        paddingBottom: '5rem'
       }}
     >
-      {/* Top progress bar */}
       {loading && (
         <div
           style={{
@@ -125,7 +108,7 @@ export default function Page() {
             height: 4,
             width: '100%',
             background: BLUE,
-            animation: 'progress 1.5s linear forwards',
+            animation: 'progress 1.5s linear forwards'
           }}
         />
       )}
@@ -137,13 +120,12 @@ export default function Page() {
         Paste a URL or blog text to generate a summary.
       </p>
 
-      {/* Toggle buttons */}
       <div style={{ display: 'flex', gap: '0.75rem' }}>
-        {(['url', 'text'] as const).map((v) => (
+        {['url', 'text'].map(v => (
           <button
             key={v}
             onClick={() => {
-              setMode(v);
+              setMode(v as 'url' | 'text');
               setInputValue('');
               setSummary('');
               setOrigCount(0);
@@ -156,39 +138,32 @@ export default function Page() {
               fontWeight: 600,
               color: '#fff',
               background: GRAY_BTN,
-              cursor: 'pointer',
+              cursor: 'pointer'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = GRAY_HOVER)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = GRAY_BTN)}
+            onMouseEnter={e => (e.currentTarget.style.background = GRAY_HOVER)}
+            onMouseLeave={e => (e.currentTarget.style.background = GRAY_BTN)}
           >
             {v.toUpperCase()}
           </button>
         ))}
       </div>
 
-      {/* Input */}
       {mode === 'url' ? (
         <input
           placeholder="Enter blog URL…"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={e => setInputValue(e.target.value)}
           style={{ ...inputBase, width: 'min(90vw,500px)', height: '3rem' }}
         />
       ) : (
         <textarea
           placeholder="Paste blog text…"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          style={{
-            ...inputBase,
-            width: 'min(90vw,650px)',
-            height: '10rem',
-            resize: 'vertical',
-          }}
+          onChange={e => setInputValue(e.target.value)}
+          style={{ ...inputBase, width: 'min(90vw,650px)', height: '10rem', resize: 'vertical' }}
         />
       )}
 
-      {/* Summarize button */}
       <button
         disabled={!canRun}
         onClick={summarize}
@@ -203,13 +178,12 @@ export default function Page() {
           color: DARK_SKY,
           opacity: canRun ? 1 : 0.6,
           cursor: canRun ? 'pointer' : 'not-allowed',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
         }}
       >
         {loading ? 'Summarizing…' : '✨ Summarize'}
       </button>
 
-      {/* Summary output */}
       {!loading && summary && (
         <div
           ref={summaryRef}
@@ -223,7 +197,7 @@ export default function Page() {
             maxWidth: 'min(90vw,650px)',
             color: DARK_TEXT,
             lineHeight: 1.5,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
           }}
         >
           <div style={{ fontSize: '0.85rem', marginBottom: '0.6rem', color: DARK_TEXT }}>
@@ -243,7 +217,7 @@ export default function Page() {
               borderRadius: '0.25rem',
               background: GRAY_BTN,
               color: '#fff',
-              cursor: 'pointer',
+              cursor: 'pointer'
             }}
           >
             📋
@@ -251,7 +225,6 @@ export default function Page() {
         </div>
       )}
 
-      {/* Sidebar facts */}
       <aside
         style={{
           position: 'fixed',
@@ -265,13 +238,12 @@ export default function Page() {
           padding: '0.8rem 1rem',
           fontSize: '0.9rem',
           color: DARK_TEXT,
-          boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
+          boxShadow: '0 1px 6px rgba(0,0,0,0.06)'
         }}
       >
         {facts[factIdx]}
       </aside>
 
-      {/* Footer */}
       <footer
         style={{
           position: 'fixed',
@@ -284,17 +256,16 @@ export default function Page() {
           padding: '0.75rem 1rem',
           fontSize: '0.95rem',
           fontWeight: 600,
-          boxShadow: '0 -1px 4px rgba(0,0,0,0.05)',
+          boxShadow: '0 -1px 4px rgba(0,0,0,0.05)'
         }}
       >
         🚀 Powered by AI • Designed by Malaika Khan
       </footer>
 
-      {/* Inline styles */}
       <style>{`
         input::placeholder, textarea::placeholder { color: ${DARK_TEXT}99; }
         @keyframes progress { from {transform:translateX(-100%);} to {transform:translateX(0);} }
-        aside { display:none; }
+        aside { display: none; }
         @media (min-width:640px){ aside { display:block; } }
       `}</style>
     </main>
