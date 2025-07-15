@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrorMsg('');
 
@@ -22,22 +22,41 @@ export default function LoginPage() {
     if (error) {
       setErrorMsg(error.message);
     } else {
-      router.push('/');
+      router.push('/'); // Redirect to home after login
     }
   }
 
   return (
-    <main style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '5rem' }}>
+    <main
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        paddingTop: '5rem',
+      }}
+    >
       <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Login</h1>
 
-      <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '300px' }}>
+      <form
+        onSubmit={handleLogin}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+          width: '300px',
+        }}
+      >
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #ccc' }}
+          style={{
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            border: '1px solid #ccc',
+          }}
         />
 
         <input
@@ -46,14 +65,24 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          style={{ padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #ccc' }}
+          style={{
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            border: '1px solid #ccc',
+          }}
         />
 
         <button
           type="submit"
-          style={{ padding: '0.75rem', borderRadius: '0.5rem', background: '#7dd3fc', border: 'none', cursor: 'pointer' }}
+          style={{
+            padding: '0.75rem',
+            borderRadius: '0.5rem',
+            background: '#7dd3fc',
+            border: 'none',
+            cursor: 'pointer',
+          }}
         >
-          Log In
+          Log In
         </button>
 
         {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
